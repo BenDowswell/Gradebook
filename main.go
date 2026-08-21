@@ -75,7 +75,6 @@ func (g *GradeBook) AddGrade(studentID, subjectID int, grade float64) error {
 
 	// look up and see if grades map exists yet
 	studentGrades, ok := g.Grades[studentID]
-
 	if !ok {
 		studentGrades = make(map[int]float64)
 		g.Grades[studentID] = studentGrades
