@@ -59,23 +59,20 @@ func (g *GradeBook) AddSubject(name string) {
 }
 
 func (g *GradeBook) AddGrade(studentID, subjectID int, grade float64) error {
-	// lookup student id to see if it exists
 	_, ok := g.Students[studentID]
 	if !ok {
 		return errors.New("Student ID doesnt exist please create student")
-		
 	}
 
 	_, ok = g.Subjects[subjectID]
-
 	if !ok {
-		
 		return errors.New("Subject  ID doesnt exist please create subject")
 	}
+
 	if grade > 100 || grade < 0 {
 		return errors.New("Grade is incorrect value must be between 0 and 100 ")
 	}
-	
+
 	// look up and see if grades map exists yet
 	studentGrades, ok := g.Grades[studentID]
 
