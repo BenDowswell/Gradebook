@@ -33,6 +33,16 @@ func NewGradeBook() *GradeBook {
 	return &g
 }
 
+func (g *GradeBook) validateIDs(studentID, subjectID int) error {
+	if _, ok := g.Students[studentID]; !ok {
+		return errors.New("Student ID doesnt exist")
+	}
+	if _, ok := g.Subjects[subjectID]; !ok {
+		return errors.New("Subject ID doesnt exist")
+	}
+	return nil
+}
+
 func (g *GradeBook) AddStudent(student, school string) {
 	// work out the next available id  come back to this later when we want to delete students potentially
 	id := len(g.Students) + 1
@@ -59,14 +69,9 @@ func (g *GradeBook) AddSubject(name string) {
 }
 
 func (g *GradeBook) AddGrade(studentID, subjectID int, grade float64) error {
-	_, ok := g.Students[studentID]
-	if !ok {
-		return errors.New("Student ID doesnt exist please create student")
-	}
 
-	_, ok = g.Subjects[subjectID]
-	if !ok {
-		return errors.New("Subject  ID doesnt exist please create subject")
+	if err := g.validateIDs(studentID, subjectID); err != nil {
+		return err
 	}
 
 	if grade > 100 || grade < 0 {
@@ -81,6 +86,23 @@ func (g *GradeBook) AddGrade(studentID, subjectID int, grade float64) error {
 	}
 
 	studentGrades[subjectID] = grade
-
 	return nil
+}
+
+func (g *GradeBook) GetGrade(studentID, subjectID int) (float64, error) {
+	if err := g.validateIDs(studentID, subjectID); err != nil {
+		return 0, err
+	}
+
+	studentGrades, ok := g.Grades[studentID]
+	if !ok {
+		return 0, errors.New("No grades exist for this student yet")
+	}
+
+	grade, ok := studentGrades[subjectID]
+	if !ok {
+		return 0, errors.New("Grade for this subject doesnt exist for this student")
+	}
+
+	return grade, nil
 }
