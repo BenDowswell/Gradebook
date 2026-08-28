@@ -1,3 +1,3 @@
-module student
+module gradebook
 
 go 1.25.5
