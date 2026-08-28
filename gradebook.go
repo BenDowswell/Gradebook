@@ -1,6 +1,18 @@
 package gradebook
 
-import "errors"
+import (
+	"errors"
+	"math"
+)
+
+var (
+	ErrEmptyField         = errors.New("empty field passed in")
+	ErrStudentID          = errors.New("student ID doesn't exist")
+	ErrSubjectID          = errors.New("subject ID doesn't exist")
+	ErrGradeValue         = errors.New("grade must be a number between 0 and 100")
+	ErrNoGradesForStudent = errors.New("no grades exist for this student yet")
+	ErrNoGradeForSubject  = errors.New("grade for this subject doesn't exist for this student")
+)
 
 type Student struct {
 	StudentID int
@@ -14,20 +26,20 @@ type Subject struct {
 }
 
 type GradeBook struct {
-	Students map[int]Student
-	Subjects map[int]Subject
-	Grades   map[int]map[int]float64
+	Students       map[int]Student
+	Subjects       map[int]Subject
+	Grades         map[int]map[int]float64
+	studentCounter int
+	subjectCounter int
 }
 
 func NewGradeBook() *GradeBook {
-	students := make(map[int]Student)
-	subjects := make(map[int]Subject)
-	grades := make(map[int]map[int]float64)
-
 	g := GradeBook{
-		Students: students,
-		Subjects: subjects,
-		Grades:   grades,
+		Students:       make(map[int]Student),
+		Subjects:       make(map[int]Subject),
+		Grades:         make(map[int]map[int]float64),
+		studentCounter: 1,
+		subjectCounter: 1,
 	}
 
 	return &g
@@ -35,30 +47,37 @@ func NewGradeBook() *GradeBook {
 
 func (g *GradeBook) validateIDs(studentID, subjectID int) error {
 	if _, ok := g.Students[studentID]; !ok {
-		return errors.New("Student ID doesnt exist")
+		return ErrStudentID
 	}
 	if _, ok := g.Subjects[subjectID]; !ok {
-		return errors.New("Subject ID doesnt exist")
+		return ErrSubjectID
 	}
 	return nil
 }
 
-func (g *GradeBook) AddStudent(student, school string) {
-	// work out the next available id  come back to this later when we want to delete students potentially
-	id := len(g.Students) + 1
+func (g *GradeBook) AddStudent(name, school string) (int, error) {
+	if name == "" || school == "" {
+		return 0, ErrEmptyField
+	}
+	id := g.studentCounter
 
 	newStudent := Student{
 		StudentID: id,
-		Name:      student,
+		Name:      name,
 		School:    school,
 	}
 
 	g.Students[id] = newStudent
+	g.studentCounter++
+
+	return id, nil
 }
 
-func (g *GradeBook) AddSubject(name string) {
-	// work out the next availble id  might need to come back to this later if we decide to delete subjects unlikely tho
-	id := len(g.Subjects) + 1
+func (g *GradeBook) AddSubject(name string) (int, error) {
+	if name == "" {
+		return 0, ErrEmptyField
+	}
+	id := g.subjectCounter
 
 	newSubject := Subject{
 		SubjectID: id,
@@ -66,18 +85,19 @@ func (g *GradeBook) AddSubject(name string) {
 	}
 
 	g.Subjects[id] = newSubject
+	g.subjectCounter++
+
+	return id, nil
 }
 
 func (g *GradeBook) AddGrade(studentID, subjectID int, grade float64) error {
-
 	if err := g.validateIDs(studentID, subjectID); err != nil {
 		return err
 	}
 
-	if grade > 100 || grade < 0 {
-		return errors.New("Grade is incorrect value must be between 0 and 100 ")
+	if math.IsNaN(grade) || (grade > 100 || grade < 0) {
+		return ErrGradeValue
 	}
-
 	// look up and see if grades map exists yet
 	studentGrades, ok := g.Grades[studentID]
 	if !ok {
@@ -96,12 +116,12 @@ func (g *GradeBook) GetGrade(studentID, subjectID int) (float64, error) {
 
 	studentGrades, ok := g.Grades[studentID]
 	if !ok {
-		return 0, errors.New("No grades exist for this student yet")
+		return 0, ErrNoGradesForStudent
 	}
 
 	grade, ok := studentGrades[subjectID]
 	if !ok {
-		return 0, errors.New("Grade for this subject doesnt exist for this student")
+		return 0, ErrNoGradeForSubject
 	}
 
 	return grade, nil
