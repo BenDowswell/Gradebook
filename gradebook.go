@@ -1,8 +1,10 @@
 package gradebook
 
 import (
+	"cmp"
 	"errors"
 	"math"
+	"slices"
 )
 
 var (
@@ -31,6 +33,12 @@ type GradeBook struct {
 	Grades         map[int]map[int]float64
 	studentCounter int
 	subjectCounter int
+}
+
+type StudentGrade struct {
+	SubjectID   int
+	SubjectName string
+	Grade       float64
 }
 
 func NewGradeBook() *GradeBook {
@@ -125,4 +133,90 @@ func (g *GradeBook) GetGrade(studentID, subjectID int) (float64, error) {
 	}
 
 	return grade, nil
+}
+
+func (g *GradeBook) ListStudents() []Student {
+	students := make([]Student, 0, len(g.Students))
+
+	for _, student := range g.Students {
+		students = append(students, student)
+	}
+
+	slices.SortFunc(students, func(a, b Student) int {
+		return cmp.Compare(a.StudentID, b.StudentID)
+	})
+
+	return students
+}
+
+func (g *GradeBook) ListSubjects() []Subject {
+	subjects := make([]Subject, 0, len(g.Subjects))
+
+	for _, subject := range g.Subjects {
+		subjects = append(subjects, subject)
+	}
+
+	slices.SortFunc(subjects, func(a, b Subject) int {
+		return cmp.Compare(a.SubjectID, b.SubjectID)
+	})
+
+	return subjects
+}
+
+func (g *GradeBook) ListGradesForStudent(studentID int) ([]StudentGrade, error) {
+	if _, ok := g.Students[studentID]; !ok {
+		return nil, ErrStudentID
+	}
+
+	studentGrades := g.Grades[studentID]
+
+	grades := make([]StudentGrade, 0, len(studentGrades))
+
+	for subjectID, grade := range studentGrades {
+		subject, ok := g.Subjects[subjectID]
+		if !ok {
+			continue
+		}
+
+		grades = append(grades, StudentGrade{
+			SubjectID:   subjectID,
+			SubjectName: subject.Name,
+			Grade:       grade,
+		})
+	}
+
+	slices.SortFunc(grades, func(a, b StudentGrade) int {
+		return cmp.Compare(a.SubjectID, b.SubjectID)
+	})
+
+	return grades, nil
+}
+
+func (g *GradeBook) DeleteStudent(studentID int) error {
+	if _, ok := g.Students[studentID]; !ok {
+		return ErrStudentID
+	}
+
+	delete(g.Students, studentID)
+	delete(g.Grades, studentID)
+
+	return nil
+}
+
+func (g *GradeBook) DeleteSubject(subjectID int) error {
+	if _, ok := g.Subjects[subjectID]; !ok {
+		return ErrSubjectID
+	}
+
+	delete(g.Subjects, subjectID)
+
+	for studentID, studentGrades := range g.Grades {
+		delete(studentGrades, subjectID)
+
+		if len(studentGrades) == 0 {
+			delete(g.Grades, studentID)
+		}
+	}
+
+	return nil
 }
