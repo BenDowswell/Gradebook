@@ -46,6 +46,59 @@ mode on a fresh session, start it with `/coaching`.
 - **`gofmt` on save.** Turn on `editor.formatOnSave` so formatting never drifts.
 - Tests live in `*_test.go` only (the runner ignores `Test*` funcs elsewhere, and
   importing `testing` in a normal file breaks the build).
+- **List / read operations don't error on "empty".** "Zero students" is a valid,
+  complete answer, so `ListStudents` / `ListSubjects` return an empty slice, not a
+  sentinel. They take no input, so there's nothing to fail on — no `error` return
+  at all. A read that takes an ID (`ListGradesForStudent`) *can* fail on a bad ID
+  and returns `error` for that case only; "student exists but has no grades" is
+  still an empty slice + `nil`.
+- **List order is explicit.** Map iteration is randomised, so every `List*` builds
+  a slice and `slices.SortFunc(... cmp.Compare(a.ID, b.ID))` before returning.
+  Tests add entries out of ID order and assert the returned order.
+- **Returned slices are snapshots.** `List*` append copies of the value structs
+  (`Student` / `Subject` / `StudentGrade` — all plain value types), so callers
+  can't mutate `GradeBook` through them. Never return an internal map directly.
+
+## Core API (as of 2026-09-06)
+
+| Create | Read | Delete |
+|---|---|---|
+| `AddStudent(name, school) (int, error)` | `ListStudents() []Student` | `DeleteStudent(id) error` |
+| `AddSubject(name) (int, error)` | `ListSubjects() []Subject` | `DeleteSubject(id) error` |
+| `AddGrade(sID, subID, grade) error` | `GetGrade(sID, subID) (float64, error)` | — |
+| | `ListGradesForStudent(sID) ([]StudentGrade, error)` | |
+
+- **`StudentGrade{ SubjectID int; SubjectName string; Grade float64 }`** is a view
+  struct for report-card rows — it carries the subject *name* so the console never
+  has to look it up again.
+- **No `EditGrade`.** `AddGrade` already overwrites an existing entry (a test pins
+  this), so "edit" is just `AddGrade` from the console. Caveat: a mistyped subject
+  silently creates a new grade rather than erroring.
+- **Invariant: every grade references an existing student and an existing subject.**
+  `DeleteStudent` drops the student's whole `Grades[id]` entry (one `delete`,
+  because grades are keyed by studentID at the top level). `DeleteSubject` has to
+  loop every student's inner map and `delete` the subjectID from each — the cost
+  of the nested map. It also removes any inner map left empty by that, so a
+  student whose only grade was for the deleted subject then reads as
+  `ErrNoGradesForStudent`. The defensive `continue` in `ListGradesForStudent`
+  (skip a subjectID with no `Subjects` entry) is insurance for a state this
+  invariant says can't occur — not normal-path logic.
+- **Delete on an unknown ID returns the sentinel** (`ErrStudentID` /
+  `ErrSubjectID`), not a silent no-op. Counters are never touched by delete.
+- Deleting from a map while ranging *that same map* is allowed in Go (unreached
+  entries just aren't yielded); adding during iteration is the unpredictable case.
+  `DeleteSubject` relies on this.
+
+## Next session
+
+- Paper exercise: sketch the console menu, map each action to a core method, find
+  the gaps. Two known candidates:
+  - **Single-item getters** (`GetStudent(id)` / `GetSubject(id)`) so the console
+    can echo "Student: Alice, Springfield High" after an ID is typed. Not built yet.
+  - **Rename / edit** a student's name or school (and subject name) — undecided
+    whether it's a feature or a delete-and-re-add for now.
+- If every menu line maps to a method, start step 2 (console app in its own
+  package).
 
 ## Review status
 
@@ -62,7 +115,14 @@ The findings in `REVIEW.md` are all addressed as of 2026-08-28:
   path, grade bounds + NaN, boundary values (0 and 100), grade overwrite, and
   ID sequencing across multiple adds.
 
-Remaining open items are only the two deliberate deferrals above.
+Added 2026-09-06 (`List*` / `Delete*`): tests for list ordering (added out of ID
+order, asserted sorted), empty-gradebook lists, `ListGradesForStudent` (bad ID /
+no grades / sorted rows with names), `DeleteSubject` cascade across *two*
+students with unrelated grades kept, empty-inner-map cleanup, surgical
+`DeleteStudent`, and both delete sentinels. All green; `gofmt -l` and `go vet`
+clean.
+
+Remaining open items are the two deliberate deferrals above.
 
 ## Commands
 
