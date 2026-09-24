@@ -41,8 +41,8 @@ func TestAddStudent(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			gb := NewGradeBook()
-			id, err := gb.AddStudent(tt.studentName, tt.schoolName)
+			g := NewGradeBook()
+			id, err := g.AddStudent(tt.studentName, tt.schoolName)
 
 			if !errors.Is(err, tt.expectedErr) {
 				t.Errorf("expected error %v, got %v", tt.expectedErr, err)
@@ -52,8 +52,8 @@ func TestAddStudent(t *testing.T) {
 				if id != 1 {
 					t.Errorf("expected first student ID to be 1, got %d", id)
 				}
-				if gb.students[id].Name != tt.studentName {
-					t.Errorf("expected name %s, got %s", tt.studentName, gb.students[id].Name)
+				if g.students[id].Name != tt.studentName {
+					t.Errorf("expected name %s, got %s", tt.studentName, g.students[id].Name)
 				}
 			}
 		})
