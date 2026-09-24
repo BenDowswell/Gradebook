@@ -28,15 +28,21 @@ func TestNewGradeBook(t *testing.T) {
 
 func TestAddStudent(t *testing.T) {
 	tests := []struct {
-		name        string
-		studentName string
-		schoolName  string
-		expectedErr error
+		name               string
+		studentName        string
+		schoolName         string
+		expectedErr        error
+		expectedName       string
+		expectedSchoolName string
 	}{
-		{"Valid student", "Alice", "Springfield High", nil},
-		{"Empty student name", "", "Springfield High", ErrEmptyField},
-		{"Empty school name", "Bob", "", ErrEmptyField},
-		{"Both empty", "", "", ErrEmptyField},
+		{"Valid student", "Alice", "Springfield High", nil, "Alice", "Springfield High"},
+		{"Blank student name", "    ", "Springfield High", ErrEmptyField, "    ", "Springfield High"},
+		{"trimmed student name", " Alice", "Springfield High", nil, "Alice", "Springfield High"},
+		{"Empty student name", "", "Springfield High", ErrEmptyField, "", "Springfield High"},
+		{"Empty school name", "Bob", "", ErrEmptyField, "Bob", ""},
+		{"Blank school name", "Alice", "    ", ErrEmptyField, "Alice", "    "},
+		{"trimmed schoolname", "Alice", " Springfield High", nil, "Alice", "Springfield High"},
+		{"Both empty", "", "", ErrEmptyField, "", ""},
 	}
 
 	for _, tt := range tests {
@@ -52,8 +58,11 @@ func TestAddStudent(t *testing.T) {
 				if id != 1 {
 					t.Errorf("expected first student ID to be 1, got %d", id)
 				}
-				if g.students[id].Name != tt.studentName {
-					t.Errorf("expected name %s, got %s", tt.studentName, g.students[id].Name)
+				if g.students[id].Name != tt.expectedName {
+					t.Errorf("expected name %s, got %s", tt.expectedName, g.students[id].Name)
+				}
+				if g.students[id].School != tt.expectedSchoolName {
+					t.Errorf("expected School name %s, got %s", tt.expectedSchoolName, g.students[id].School)
 				}
 			}
 		})
@@ -62,12 +71,15 @@ func TestAddStudent(t *testing.T) {
 
 func TestAddSubject(t *testing.T) {
 	tests := []struct {
-		name        string
-		subjectName string
-		expectedErr error
+		name         string
+		subjectName  string
+		expectedErr  error
+		expectedName string
 	}{
-		{"Valid subject", "Math", nil},
-		{"Empty subject name", "", ErrEmptyField},
+		{"Valid subject", "Math", nil, "Math"},
+		{"blank subject", "   ", ErrEmptyField, "   "},
+		{"untrimmed subject", " English", nil, "English"},
+		{"Empty subject name", "", ErrEmptyField, ""},
 	}
 
 	for _, tt := range tests {
@@ -83,8 +95,8 @@ func TestAddSubject(t *testing.T) {
 				if id != 1 {
 					t.Errorf("expected first subject ID to be 1, got %d", id)
 				}
-				if gb.subjects[id].Name != tt.subjectName {
-					t.Errorf("expected subject name %s, got %s", tt.subjectName, gb.subjects[id].Name)
+				if gb.subjects[id].Name != tt.expectedName {
+					t.Errorf("expected subject name %s, got %s", tt.expectedName, gb.subjects[id].Name)
 				}
 			}
 		})

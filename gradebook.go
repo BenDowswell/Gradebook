@@ -5,6 +5,7 @@ import (
 	"errors"
 	"math"
 	"slices"
+	"strings"
 )
 
 var (
@@ -64,6 +65,9 @@ func (g *GradeBook) validateIDs(studentID, subjectID int) error {
 }
 
 func (g *GradeBook) AddStudent(name, school string) (int, error) {
+	name = strings.TrimSpace(name)
+	school = strings.TrimSpace(school)
+
 	if name == "" || school == "" {
 		return 0, ErrEmptyField
 	}
@@ -82,6 +86,8 @@ func (g *GradeBook) AddStudent(name, school string) (int, error) {
 }
 
 func (g *GradeBook) AddSubject(name string) (int, error) {
+	name = strings.TrimSpace(name)
+
 	if name == "" {
 		return 0, ErrEmptyField
 	}
@@ -219,4 +225,20 @@ func (g *GradeBook) DeleteSubject(subjectID int) error {
 	}
 
 	return nil
+}
+
+func (g *GradeBook) GetStudent(studentID int) (Student, error) {
+	student, ok := g.students[studentID]
+	if !ok {
+		return Student{}, ErrStudentID
+	}
+	return student, nil
+}
+
+func (g *GradeBook) GetSubject(subjectID int) (Subject, error) {
+	subject, ok := g.subjects[subjectID]
+	if !ok {
+		return Subject{}, ErrStudentID
+	}
+	return subject, nil
 }
