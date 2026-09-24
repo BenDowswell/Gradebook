@@ -9,14 +9,14 @@ import (
 func TestNewGradeBook(t *testing.T) {
 	g := NewGradeBook()
 
-	if g.Students == nil {
-		t.Error("expected Students map to be initialized, got nil")
+	if g.students == nil {
+		t.Error("expected students map to be initialized, got nil")
 	}
-	if g.Subjects == nil {
-		t.Error("expected Subjects map to be initialized, got nil")
+	if g.subjects == nil {
+		t.Error("expected subjects map to be initialized, got nil")
 	}
-	if g.Grades == nil {
-		t.Error("expected Grades map to be initialized, got nil")
+	if g.grades == nil {
+		t.Error("expected grades map to be initialized, got nil")
 	}
 	if g.studentCounter != 1 {
 		t.Errorf("expected studentCounter to start at 1, got %d", g.studentCounter)
@@ -52,8 +52,8 @@ func TestAddStudent(t *testing.T) {
 				if id != 1 {
 					t.Errorf("expected first student ID to be 1, got %d", id)
 				}
-				if gb.Students[id].Name != tt.studentName {
-					t.Errorf("expected name %s, got %s", tt.studentName, gb.Students[id].Name)
+				if gb.students[id].Name != tt.studentName {
+					t.Errorf("expected name %s, got %s", tt.studentName, gb.students[id].Name)
 				}
 			}
 		})
@@ -83,8 +83,8 @@ func TestAddSubject(t *testing.T) {
 				if id != 1 {
 					t.Errorf("expected first subject ID to be 1, got %d", id)
 				}
-				if gb.Subjects[id].Name != tt.subjectName {
-					t.Errorf("expected subject name %s, got %s", tt.subjectName, gb.Subjects[id].Name)
+				if gb.subjects[id].Name != tt.subjectName {
+					t.Errorf("expected subject name %s, got %s", tt.subjectName, gb.subjects[id].Name)
 				}
 			}
 		})
@@ -123,8 +123,8 @@ func TestAddGrade(t *testing.T) {
 			}
 
 			if err == nil {
-				if gb.Grades[tt.studentID][tt.subjectID] != tt.grade {
-					t.Errorf("expected stored grade to be %f, got %f", tt.grade, gb.Grades[tt.studentID][tt.subjectID])
+				if gb.grades[tt.studentID][tt.subjectID] != tt.grade {
+					t.Errorf("expected stored grade to be %f, got %f", tt.grade, gb.grades[tt.studentID][tt.subjectID])
 				}
 			}
 		})
@@ -227,7 +227,7 @@ func TestAddStudent_IDSequencing(t *testing.T) {
 		}
 
 		// 2. Verify the student was actually saved in the map under this new ID
-		storedStudent, exists := g.Students[id]
+		storedStudent, exists := g.students[id]
 		if !exists {
 			t.Fatalf("expected student to be saved at ID %d, but nothing was found", id)
 		}
@@ -244,7 +244,7 @@ func TestAddStudent_IDSequencing(t *testing.T) {
 	}
 }
 
-func TestListStudents(t *testing.T) {
+func TestListstudents(t *testing.T) {
 	g := NewGradeBook()
 
 	_, _ = g.AddStudent("Charlie", "Shelbyville High") // ID 1
@@ -270,7 +270,7 @@ func TestListStudents(t *testing.T) {
 	}
 }
 
-func TestListStudentsEmptyGradeBook(t *testing.T) {
+func TestListstudentsEmptyGradeBook(t *testing.T) {
 	g := NewGradeBook()
 
 	students := g.ListStudents()
@@ -280,7 +280,7 @@ func TestListStudentsEmptyGradeBook(t *testing.T) {
 	}
 }
 
-func TestListSubjects(t *testing.T) {
+func TestListsubjects(t *testing.T) {
 	g := NewGradeBook()
 
 	_, _ = g.AddSubject("Science") // ID 1
@@ -306,7 +306,7 @@ func TestListSubjects(t *testing.T) {
 	}
 }
 
-func TestListSubjectsEmptyGradeBook(t *testing.T) {
+func TestListsubjectsEmptyGradeBook(t *testing.T) {
 	g := NewGradeBook()
 
 	subjects := g.ListSubjects()
@@ -316,11 +316,11 @@ func TestListSubjectsEmptyGradeBook(t *testing.T) {
 	}
 }
 
-func TestListGradesForStudent(t *testing.T) {
+func TestListgradesForStudent(t *testing.T) {
 	tests := []struct {
 		name          string
 		studentID     int
-		setupGrades   bool
+		setupgrades   bool
 		expectedCount int
 		expectedErr   error
 	}{
@@ -337,7 +337,7 @@ func TestListGradesForStudent(t *testing.T) {
 			mathID, _ := g.AddSubject("Math")
 			scienceID, _ := g.AddSubject("Science")
 
-			if tt.setupGrades {
+			if tt.setupgrades {
 				_ = g.AddGrade(studentID, scienceID, 92)
 				_ = g.AddGrade(studentID, mathID, 88)
 			}
@@ -352,7 +352,7 @@ func TestListGradesForStudent(t *testing.T) {
 				t.Fatalf("expected %d grades, got %d", tt.expectedCount, len(grades))
 			}
 
-			if tt.setupGrades {
+			if tt.setupgrades {
 				if grades[0].SubjectID != mathID {
 					t.Errorf("expected first subject ID to be %d, got %d", mathID, grades[0].SubjectID)
 				}
@@ -394,11 +394,11 @@ func TestDeleteStudent(t *testing.T) {
 		t.Fatalf("unexpected error deleting student: %v", err)
 	}
 
-	if _, ok := g.Students[studentID]; ok {
+	if _, ok := g.students[studentID]; ok {
 		t.Errorf("expected student ID %d to be deleted", studentID)
 	}
 
-	if _, ok := g.Grades[studentID]; ok {
+	if _, ok := g.grades[studentID]; ok {
 		t.Errorf("expected grades for student ID %d to be deleted", studentID)
 	}
 }
@@ -413,7 +413,7 @@ func TestDeleteStudentUnknownID(t *testing.T) {
 	}
 }
 
-func TestDeleteSubjectRemovesSubjectAndGradeButKeepsOtherGrades(t *testing.T) {
+func TestDeleteSubjectRemovesSubjectAndGradeButKeepsOthergrades(t *testing.T) {
 	g := NewGradeBook()
 
 	studentID, _ := g.AddStudent("Alice", "High School")
@@ -428,20 +428,20 @@ func TestDeleteSubjectRemovesSubjectAndGradeButKeepsOtherGrades(t *testing.T) {
 		t.Fatalf("unexpected error deleting subject: %v", err)
 	}
 
-	if _, ok := g.Subjects[mathID]; ok {
+	if _, ok := g.subjects[mathID]; ok {
 		t.Errorf("expected subject ID %d to be deleted", mathID)
 	}
 
-	studentGrades, ok := g.Grades[studentID]
+	studentgrades, ok := g.grades[studentID]
 	if !ok {
 		t.Fatalf("expected student ID %d to still have grades", studentID)
 	}
 
-	if _, ok := studentGrades[mathID]; ok {
+	if _, ok := studentgrades[mathID]; ok {
 		t.Errorf("expected grade for deleted subject ID %d to be removed", mathID)
 	}
 
-	grade, ok := studentGrades[scienceID]
+	grade, ok := studentgrades[scienceID]
 	if !ok {
 		t.Fatalf("expected grade for subject ID %d to remain", scienceID)
 	}
@@ -451,7 +451,7 @@ func TestDeleteSubjectRemovesSubjectAndGradeButKeepsOtherGrades(t *testing.T) {
 	}
 }
 
-func TestDeleteSubjectCleansUpEmptyStudentGrades(t *testing.T) {
+func TestDeleteSubjectCleansUpEmptyStudentgrades(t *testing.T) {
 	g := NewGradeBook()
 
 	studentID, _ := g.AddStudent("Alice", "High School")
@@ -464,7 +464,7 @@ func TestDeleteSubjectCleansUpEmptyStudentGrades(t *testing.T) {
 		t.Fatalf("unexpected error deleting subject: %v", err)
 	}
 
-	if _, ok := g.Grades[studentID]; ok {
+	if _, ok := g.grades[studentID]; ok {
 		t.Errorf("expected grades map for student ID %d to be removed", studentID)
 	}
 }
@@ -479,7 +479,7 @@ func TestDeleteSubjectUnknownID(t *testing.T) {
 	}
 }
 
-func TestDeleteSubjectRemovesGradeFromAllStudents(t *testing.T) {
+func TestDeleteSubjectRemovesGradeFromAllstudents(t *testing.T) {
 	g := NewGradeBook()
 
 	aliceID, _ := g.AddStudent("Alice", "High School")
@@ -499,29 +499,29 @@ func TestDeleteSubjectRemovesGradeFromAllStudents(t *testing.T) {
 		t.Fatalf("unexpected error deleting subject: %v", err)
 	}
 
-	if _, ok := g.Subjects[mathID]; ok {
+	if _, ok := g.subjects[mathID]; ok {
 		t.Errorf("expected subject ID %d to be deleted", mathID)
 	}
 
-	aliceGrades := g.Grades[aliceID]
+	alicegrades := g.grades[aliceID]
 
-	if _, ok := aliceGrades[mathID]; ok {
+	if _, ok := alicegrades[mathID]; ok {
 		t.Errorf("expected Math grade to be removed for Alice")
 	}
 
-	if grade, ok := aliceGrades[scienceID]; !ok {
+	if grade, ok := alicegrades[scienceID]; !ok {
 		t.Errorf("expected Alice's Science grade to remain")
 	} else if grade != 91 {
 		t.Errorf("expected Alice's Science grade to be 91, got %f", grade)
 	}
 
-	bobGrades := g.Grades[bobID]
+	bobgrades := g.grades[bobID]
 
-	if _, ok := bobGrades[mathID]; ok {
+	if _, ok := bobgrades[mathID]; ok {
 		t.Errorf("expected Math grade to be removed for Bob")
 	}
 
-	if grade, ok := bobGrades[scienceID]; !ok {
+	if grade, ok := bobgrades[scienceID]; !ok {
 		t.Errorf("expected Bob's Science grade to remain")
 	} else if grade != 84 {
 		t.Errorf("expected Bob's Science grade to be 84, got %f", grade)
@@ -544,24 +544,24 @@ func TestDeleteStudentOnlyRemovesTargetStudent(t *testing.T) {
 		t.Fatalf("unexpected error deleting student: %v", err)
 	}
 
-	if _, ok := g.Students[aliceID]; ok {
+	if _, ok := g.students[aliceID]; ok {
 		t.Errorf("expected Alice to be deleted")
 	}
 
-	if _, ok := g.Grades[aliceID]; ok {
+	if _, ok := g.grades[aliceID]; ok {
 		t.Errorf("expected Alice's grades to be deleted")
 	}
 
-	if _, ok := g.Students[bobID]; !ok {
+	if _, ok := g.students[bobID]; !ok {
 		t.Errorf("expected Bob to remain")
 	}
 
-	bobGrades, ok := g.Grades[bobID]
+	bobgrades, ok := g.grades[bobID]
 	if !ok {
 		t.Fatalf("expected Bob's grades to remain")
 	}
 
-	if grade, ok := bobGrades[mathID]; !ok {
+	if grade, ok := bobgrades[mathID]; !ok {
 		t.Errorf("expected Bob's Math grade to remain")
 	} else if grade != 92 {
 		t.Errorf("expected Bob's Math grade to be 92, got %f", grade)

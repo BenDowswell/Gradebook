@@ -28,9 +28,9 @@ type Subject struct {
 }
 
 type GradeBook struct {
-	Students       map[int]Student
-	Subjects       map[int]Subject
-	Grades         map[int]map[int]float64
+	students       map[int]Student
+	subjects       map[int]Subject
+	grades         map[int]map[int]float64
 	studentCounter int
 	subjectCounter int
 }
@@ -43,9 +43,9 @@ type StudentGrade struct {
 
 func NewGradeBook() *GradeBook {
 	g := GradeBook{
-		Students:       make(map[int]Student),
-		Subjects:       make(map[int]Subject),
-		Grades:         make(map[int]map[int]float64),
+		students:       make(map[int]Student),
+		subjects:       make(map[int]Subject),
+		grades:         make(map[int]map[int]float64),
 		studentCounter: 1,
 		subjectCounter: 1,
 	}
@@ -54,10 +54,10 @@ func NewGradeBook() *GradeBook {
 }
 
 func (g *GradeBook) validateIDs(studentID, subjectID int) error {
-	if _, ok := g.Students[studentID]; !ok {
+	if _, ok := g.students[studentID]; !ok {
 		return ErrStudentID
 	}
-	if _, ok := g.Subjects[subjectID]; !ok {
+	if _, ok := g.subjects[subjectID]; !ok {
 		return ErrSubjectID
 	}
 	return nil
@@ -75,7 +75,7 @@ func (g *GradeBook) AddStudent(name, school string) (int, error) {
 		School:    school,
 	}
 
-	g.Students[id] = newStudent
+	g.students[id] = newStudent
 	g.studentCounter++
 
 	return id, nil
@@ -92,7 +92,7 @@ func (g *GradeBook) AddSubject(name string) (int, error) {
 		Name:      name,
 	}
 
-	g.Subjects[id] = newSubject
+	g.subjects[id] = newSubject
 	g.subjectCounter++
 
 	return id, nil
@@ -107,10 +107,10 @@ func (g *GradeBook) AddGrade(studentID, subjectID int, grade float64) error {
 		return ErrGradeValue
 	}
 	// look up and see if grades map exists yet
-	studentGrades, ok := g.Grades[studentID]
+	studentGrades, ok := g.grades[studentID]
 	if !ok {
 		studentGrades = make(map[int]float64)
-		g.Grades[studentID] = studentGrades
+		g.grades[studentID] = studentGrades
 	}
 
 	studentGrades[subjectID] = grade
@@ -122,7 +122,7 @@ func (g *GradeBook) GetGrade(studentID, subjectID int) (float64, error) {
 		return 0, err
 	}
 
-	studentGrades, ok := g.Grades[studentID]
+	studentGrades, ok := g.grades[studentID]
 	if !ok {
 		return 0, ErrNoGradesForStudent
 	}
@@ -136,9 +136,9 @@ func (g *GradeBook) GetGrade(studentID, subjectID int) (float64, error) {
 }
 
 func (g *GradeBook) ListStudents() []Student {
-	students := make([]Student, 0, len(g.Students))
+	students := make([]Student, 0, len(g.students))
 
-	for _, student := range g.Students {
+	for _, student := range g.students {
 		students = append(students, student)
 	}
 
@@ -150,9 +150,9 @@ func (g *GradeBook) ListStudents() []Student {
 }
 
 func (g *GradeBook) ListSubjects() []Subject {
-	subjects := make([]Subject, 0, len(g.Subjects))
+	subjects := make([]Subject, 0, len(g.subjects))
 
-	for _, subject := range g.Subjects {
+	for _, subject := range g.subjects {
 		subjects = append(subjects, subject)
 	}
 
@@ -164,16 +164,16 @@ func (g *GradeBook) ListSubjects() []Subject {
 }
 
 func (g *GradeBook) ListGradesForStudent(studentID int) ([]StudentGrade, error) {
-	if _, ok := g.Students[studentID]; !ok {
+	if _, ok := g.students[studentID]; !ok {
 		return nil, ErrStudentID
 	}
 
-	studentGrades := g.Grades[studentID]
+	studentGrades := g.grades[studentID]
 
 	grades := make([]StudentGrade, 0, len(studentGrades))
 
 	for subjectID, grade := range studentGrades {
-		subject, ok := g.Subjects[subjectID]
+		subject, ok := g.subjects[subjectID]
 		if !ok {
 			continue
 		}
@@ -193,28 +193,28 @@ func (g *GradeBook) ListGradesForStudent(studentID int) ([]StudentGrade, error) 
 }
 
 func (g *GradeBook) DeleteStudent(studentID int) error {
-	if _, ok := g.Students[studentID]; !ok {
+	if _, ok := g.students[studentID]; !ok {
 		return ErrStudentID
 	}
 
-	delete(g.Students, studentID)
-	delete(g.Grades, studentID)
+	delete(g.students, studentID)
+	delete(g.grades, studentID)
 
 	return nil
 }
 
 func (g *GradeBook) DeleteSubject(subjectID int) error {
-	if _, ok := g.Subjects[subjectID]; !ok {
+	if _, ok := g.subjects[subjectID]; !ok {
 		return ErrSubjectID
 	}
 
-	delete(g.Subjects, subjectID)
+	delete(g.subjects, subjectID)
 
-	for studentID, studentGrades := range g.Grades {
+	for studentID, studentGrades := range g.grades {
 		delete(studentGrades, subjectID)
 
 		if len(studentGrades) == 0 {
-			delete(g.Grades, studentID)
+			delete(g.grades, studentID)
 		}
 	}
 
