@@ -88,13 +88,31 @@ mode on a fresh session, start it with `/coaching`.
   (`Student` / `Subject` / `StudentGrade` — all plain value types), so callers
   can't mutate `GradeBook` through them. Never return an internal map directly.
 
-## Core API (as of 2026-09-24)
+- **Getter tests (`TestGetStudent` / `TestGetSubject`).** Setup always adds a
+  *literal* valid student/subject (`"Ben", "Nescot"` / `"maths"`), checked with
+  `t.Fatalf`, so setup can't fail on any row. A `useAddedID` bool column picks the
+  ID to look up: `true` = the ID `Add*` returned, `false` = the row's fixed (bad)
+  ID. Only add an input column if its value differs between rows. Not-found rows
+  expect the zero value (`""`) in the `Expected…` columns and the sentinel in
+  `expectedErr`. Messages are "expected X, got Y" (expected first); check the
+  label and the field match the check (a copy-pasted message once said "name"
+  for a school check).
+- **Check the `-run` filter ran the right test.** After deliberately breaking code
+  to prove a test goes red, `go test -run TestX -v` must name the test that covers
+  the function you broke, or a green result means nothing.
+- **Copy-pasted near-twins are a bug source.** `GetSubject` once returned
+  `ErrStudentID`; no test called it, so the suite stayed green. Reread after
+  copying, and give every public method at least one test.
+
+## Core API (as of 2026-10-07)
 
 | Create | Read | Delete |
 |---|---|---|
 | `AddStudent(name, school) (int, error)` | `ListStudents() []Student` | `DeleteStudent(id) error` |
 | `AddSubject(name) (int, error)` | `ListSubjects() []Subject` | `DeleteSubject(id) error` |
-| `AddGrade(sID, subID, grade) error` | `GetGrade(sID, subID) (float64, error)` | — |
+| `AddGrade(sID, subID, grade) error` | `GetStudent(id) (Student, error)` | — |
+| | `GetSubject(id) (Subject, error)` | |
+| | `GetGrade(sID, subID) (float64, error)` | |
 | | `ListGradesForStudent(sID) ([]StudentGrade, error)` | |
 
 - **`StudentGrade{ SubjectID int; SubjectName string; Grade float64 }`** is a view
@@ -120,16 +138,27 @@ mode on a fresh session, start it with `/coaching`.
 
 ## Next session
 
-- Optional tidy-up: on rows that expect an error, `expectedName` is never
-  checked, so use `""` there instead of leftover input values.
-- Paper exercise: sketch the console menu, map each action to a core method, find
-  the gaps. Two known candidates:
-  - **Single-item getters** (`GetStudent(id)` / `GetSubject(id)`) so the console
-    can echo "Student: Alice, Springfield High" after an ID is typed. Not built yet.
-  - **Rename / edit** a student's name or school (and subject name) — undecided
-    whether it's a feature or a delete-and-re-add for now.
-- If every menu line maps to a method, start step 2 (console app in its own
-  package).
+- **Start here: paper exercise.** Sketch the console menu: write each user action
+  as a menu line, put the core method it calls beside it, and mark any line with
+  no matching method (those are the gaps). Questions to work through:
+  - Which actions need an ID typed by the user, and which method shows the IDs
+    first (`ListStudents` / `ListSubjects`)?
+  - Input arrives as strings. Where does "85.5" become a `float64`, in the
+    console or the core? (Core already validates range, NaN, trimming; console
+    only re-prompts early.)
+  - `GetStudent` / `GetSubject` exist now, so delete/grade prompts can echo
+    "Student: Ben, Nescot" after an ID is typed.
+- If every menu line maps to a method, start step 2: console app in its own
+  folder with `package main`, importing the core by module path
+  (`import "gradebook"`). Pick the folder layout (`console/` vs `cmd/<name>/`);
+  the root `go.mod` already covers subfolders.
+- Decided 2026-10-07: **rename/edit is not built.** Treat it as delete-and-re-add
+  until real console use shows it's needed. Deleted-ID getter tests also skipped:
+  a deleted ID and an unknown ID take the same map-miss path.
+- Optional tidy-up: `external_test.go` was only a package-boundary check; it still
+  documents that the public API suffices, so it was kept for now.
+- Optional tidy-up: some older table rows that expect an error still have
+  leftover input values in `expectedName`; use `""` there.
 
 ## Review status
 
@@ -162,6 +191,13 @@ Added 2026-09-24 (outside review by a friend):
   confirm its rows go red.
 - New `external_test.go` (`package gradebook_test`) checks the public API from
   outside: add a student, read `.Name` back through `ListStudents()`.
+
+Added 2026-10-07:
+- Added `GetStudent` / `GetSubject`. Bug found on review: `GetSubject` returned
+  `ErrStudentID` on a bad ID (copy-paste slip); fixed to `ErrSubjectID`.
+- New `TestGetSubject` and `TestGetStudent` (see "Getter tests" above). Proved
+  red by temporarily returning the wrong sentinel: only the not-found row failed,
+  with the right message. Fully green; `gofmt -l` and `go vet` clean.
 - Mutex point acknowledged; still a deliberate deferral.
 
 Remaining open items are the two deliberate deferrals above.

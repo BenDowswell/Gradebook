@@ -545,7 +545,6 @@ func TestDeleteStudentOnlyRemovesTargetStudent(t *testing.T) {
 
 	aliceID, _ := g.AddStudent("Alice", "High School")
 	bobID, _ := g.AddStudent("Bob", "High School")
-
 	mathID, _ := g.AddSubject("Math")
 
 	_ = g.AddGrade(aliceID, mathID, 88)
@@ -577,5 +576,86 @@ func TestDeleteStudentOnlyRemovesTargetStudent(t *testing.T) {
 		t.Errorf("expected Bob's Math grade to remain")
 	} else if grade != 92 {
 		t.Errorf("expected Bob's Math grade to be 92, got %f", grade)
+	}
+}
+
+func TestGetSubject(t *testing.T) {
+	tests := []struct {
+		testName     string
+		SubjectID    int
+		ExpectedName string
+		expectedErr  error
+		useAddedID   bool
+	}{
+		{"Valid subject", 1, "maths", nil, true},
+		{"invalid subject", 99, "", ErrSubjectID, false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.testName, func(t *testing.T) {
+			g := NewGradeBook()
+			id, err := g.AddSubject("maths")
+
+			if err != nil {
+				t.Fatalf("setup failed, error was %v", err)
+			}
+			var lookupID int
+			if tt.useAddedID {
+				lookupID = id
+			} else {
+				lookupID = tt.SubjectID
+			}
+			subject, err := g.GetSubject(lookupID)
+
+			if !errors.Is(err, tt.expectedErr) {
+				t.Errorf("expected error %v, got %v", tt.expectedErr, err)
+			}
+
+			if subject.Name != tt.ExpectedName {
+				t.Errorf("expected name %v, got %v", tt.ExpectedName, subject.Name)
+			}
+		})
+	}
+}
+
+func TestGetStudent(t *testing.T) {
+	tests := []struct {
+		testName       string
+		StudentID      int
+		useAddedID     bool
+		ExpectedName   string
+		ExpectedSchool string
+		expectedErr    error
+	}{
+		{"Valid Student", 1, true, "Ben", "Nescot", nil},
+		{"invalid Student", 99, false, "", "", ErrStudentID},
+	}
+	for _, tt := range tests {
+		t.Run(tt.testName, func(t *testing.T) {
+			g := NewGradeBook()
+			id, err := g.AddStudent("Ben", "Nescot")
+
+			if err != nil {
+				t.Fatalf("setup failed, error was %v", err)
+			}
+			var lookupID int
+			if tt.useAddedID {
+				lookupID = id
+			} else {
+				lookupID = tt.StudentID
+			}
+			student, err := g.GetStudent(lookupID)
+
+			if !errors.Is(err, tt.expectedErr) {
+				t.Errorf("expected error %v, got %v", tt.expectedErr, err)
+			}
+
+			if student.Name != tt.ExpectedName {
+				t.Errorf("expected name %v, got %v", tt.ExpectedName, student.Name)
+			}
+
+			if student.School != tt.ExpectedSchool {
+				t.Errorf("expected school %v, got %v", tt.ExpectedSchool, student.School)
+			}
+		})
 	}
 }

@@ -238,7 +238,7 @@ func (g *GradeBook) GetStudent(studentID int) (Student, error) {
 func (g *GradeBook) GetSubject(subjectID int) (Subject, error) {
 	subject, ok := g.subjects[subjectID]
 	if !ok {
-		return Subject{}, ErrStudentID
+		return Subject{}, ErrSubjectID
 	}
 	return subject, nil
 }
