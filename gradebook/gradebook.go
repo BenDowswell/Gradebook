@@ -9,12 +9,12 @@ import (
 )
 
 var (
-	ErrEmptyField         = errors.New("empty field passed in")
-	ErrStudentID          = errors.New("student ID doesn't exist")
-	ErrSubjectID          = errors.New("subject ID doesn't exist")
+	ErrEmptyField         = errors.New("required field cannot be empty")
+	ErrStudentID          = errors.New("student ID does not exist")
+	ErrSubjectID          = errors.New("subject ID does not exist")
 	ErrGradeValue         = errors.New("grade must be a number between 0 and 100")
 	ErrNoGradesForStudent = errors.New("no grades exist for this student yet")
-	ErrNoGradeForSubject  = errors.New("grade for this subject doesn't exist for this student")
+	ErrNoGradeForSubject  = errors.New("grade for this subject does not exist for this student")
 )
 
 type Student struct {

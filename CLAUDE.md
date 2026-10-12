@@ -126,8 +126,10 @@ mode on a fresh session, start it with `/coaching`.
   because grades are keyed by studentID at the top level). `DeleteSubject` has to
   loop every student's inner map and `delete` the subjectID from each — the cost
   of the nested map. It also removes any inner map left empty by that, so a
-  student whose only grade was for the deleted subject then reads as
-  `ErrNoGradesForStudent`. The defensive `continue` in `ListGradesForStudent`
+  student whose only grade was for the deleted subject then reads as "no grades":
+  `ListGradesForStudent` returns an empty slice + `nil`, and `GetGrade` returns
+  `ErrNoGradesForStudent` (it is the only function that returns that sentinel).
+  The defensive `continue` in `ListGradesForStudent`
   (skip a subjectID with no `subjects` entry) is insurance for a state this
   invariant says can't occur — not normal-path logic.
 - **Delete on an unknown ID returns the sentinel** (`ErrStudentID` /
@@ -136,22 +138,68 @@ mode on a fresh session, start it with `/coaching`.
   entries just aren't yielded); adding during iteration is the unpredictable case.
   `DeleteSubject` relies on this.
 
+## Project layout (since 2026-10-12, branch `console`)
+
+```
+Gradebook/
+├── go.mod              module gradebook
+├── main.go             package main: NewGradeBook -> console.NewApp -> MainMenu
+├── gradebook/          the core (+ gradebook_test.go, external_test.go)
+└── console/menu.go     package console: menus, prompts, display
+```
+
+Imports use module path + folder: `gradebook/gradebook`, `gradebook/console`.
+Layout decided: root `main.go`, not `cmd/`.
+
+## Console design (step 2, built 2026-10-12)
+
+Menu tree: Main (Add / Delete / List / Lookup / `x` exit) -> each submenu
+(`x` = back). Every menu has the same shape: `for { print options; readLine;
+switch }`. `x` is `return`; `default` prints "not an option" and the loop
+repeats. Actions never call a menu: they do one job and finish, and the menu's
+loop shows itself again.
+
+- **`App` struct** holds `book *gradebook.GradeBook`, `reader *bufio.Scanner`
+  (created once in `NewApp`, on `os.Stdin`) and `out io.Writer`. All printing
+  goes through `a.out` so output can be captured in tests later.
+- **Input helpers** (all methods on `App`):
+  - `readLine(prompt) (string, bool)` — trimmed line; `false` means input ended
+    (Ctrl+Z), and every caller just returns.
+  - `readRequired(prompt)` — loops until non-empty (names, school).
+  - `readInt(prompt)` — loops until `strconv.Atoi` succeeds (IDs).
+  - `readFloat(prompt)` — loops until a number in 0–100; also rejects `NaN` /
+    `Inf` (`ParseFloat` accepts those strings).
+- **Core still validates.** The console's early checks only save the user a
+  round trip; the core owns data integrity because the HTTP API and tests call it
+  too. `ErrEmptyField` etc. are unreachable via the console but must stay.
+- **Wrappers** (`addStudent`, `deleteSubject`, ...) are lowercase `App` methods:
+  ask, call the core, echo the stored record back (`GetStudent` / `GetSubject` /
+  `GetGrade`).
+- **Tables** use `text/tabwriter` (call `Flush()`); don't align with `\t` alone.
+- **Errors** are printed as `Error: <err>` using the core's strings (reworded
+  2026-10-12 to be user-readable: "does not exist", "required field cannot be
+  empty"). Mapping sentinels to HTTP codes / messages with `errors.Is` is
+  deferred to step 4.
+
+### Console decisions and accepted risks
+
+- **Grade range 0–100 exists in two places** (core `AddGrade` and console
+  `readFloat`). Accepted for now; if the core's limit changes, update both.
+- Menu methods `AddMenu` / `DeleteMenu` / `ListMenu` / `LookupMenu` are exported
+  though only `MainMenu` is called from outside; harmless, unchanged.
+- `NewApp` hard-wires `os.Stdin`, so the console can't be fed test input yet.
+- No console tests. Both are open questions below.
+- Typed `abc` / out-of-range input re-prompts instead of returning to the menu.
+
 ## Next session
 
-- **Start here: paper exercise.** Sketch the console menu: write each user action
-  as a menu line, put the core method it calls beside it, and mark any line with
-  no matching method (those are the gaps). Questions to work through:
-  - Which actions need an ID typed by the user, and which method shows the IDs
-    first (`ListStudents` / `ListSubjects`)?
-  - Input arrives as strings. Where does "85.5" become a `float64`, in the
-    console or the core? (Core already validates range, NaN, trimming; console
-    only re-prompts early.)
-  - `GetStudent` / `GetSubject` exist now, so delete/grade prompts can echo
-    "Student: Ben, Nescot" after an ID is typed.
-- If every menu line maps to a method, start step 2: console app in its own
-  folder with `package main`, importing the core by module path
-  (`import "gradebook"`). Pick the folder layout (`console/` vs `cmd/<name>/`);
-  the root `go.mod` already covers subfolders.
+- Commit the `console` branch (console code and `main.go` were uncommitted as of
+  2026-10-12) and run `gofmt -w main.go console/menu.go`.
+- Choose: **console tests** (needs a way to inject input into `NewApp`, e.g. a
+  `strings.NewReader`, and a `bytes.Buffer` for `out`) **or move on to step 3**
+  (database). Ask which risk matters more before the DB arrives.
+- Manual checks worth repeating: blank name, bad IDs, `nan` / `inf` / `101` at
+  the grade prompt, Ctrl+Z at each prompt, student with no grades.
 - Decided 2026-10-07: **rename/edit is not built.** Treat it as delete-and-re-add
   until real console use shows it's needed. Deleted-ID getter tests also skipped:
   a deleted ID and an unknown ID take the same map-miss path.
@@ -200,11 +248,23 @@ Added 2026-10-07:
   with the right message. Fully green; `gofmt -l` and `go vet` clean.
 - Mutex point acknowledged; still a deliberate deferral.
 
+Added 2026-10-12 (console, step 2):
+- Moved the core into `gradebook/`, tests with it; added `console/` and root
+  `main.go` (see "Project layout"). `go test ./...` green after the move.
+- Console menus, wrappers and input helpers written (see "Console design").
+  Manually exercised: blank name/school, unknown subject on `AddGrade`, student
+  grade listing, non-numeric / negative / over-100 grades.
+- Core error strings reworded ("does not exist", "required field cannot be
+  empty"). No test pins the text.
+- `ListGradesForStudent` verified: unknown ID -> `ErrStudentID`; existing student
+  with no grades -> empty slice + `nil`. Both console branches are live.
+
 Remaining open items are the two deliberate deferrals above.
 
 ## Commands
 
 - `go test ./... -v` — run tests
 - `gofmt -l .` — list unformatted files (silent = clean)
-- `gofmt -w gradebook.go` — format in place
+- `gofmt -w .` — format everything in place
+- `go run .` — run the console app (from the project root)
 - `go vet ./...` — static checks (silent = clean)
