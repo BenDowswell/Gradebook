@@ -60,13 +60,10 @@ func (a *App) runMenu(title string, items []menuItem) {
 			return
 		}
 
-		// 1. if the choice is "x", return
 		if strings.ToLower(choice) == "x" {
 			return
 		}
 
-		// 2. loop over items:
-		//   if it.key matches the choice, call it.action() and note that you found it
 		found := false
 		for _, it := range items {
 			if it.key == choice {
