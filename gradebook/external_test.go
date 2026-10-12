@@ -2,7 +2,7 @@ package gradebook_test
 
 import (
 	"errors"
-	"gradebook"
+	"gradebook/gradebook"
 	"testing"
 )
 
