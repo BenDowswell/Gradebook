@@ -13,6 +13,12 @@ import (
 	"gradebook/gradebook"
 )
 
+type menuItem struct {
+	key    string
+	label  string
+	action func()
+}
+
 type App struct {
 	book   *gradebook.GradeBook
 	reader *bufio.Scanner
@@ -35,6 +41,44 @@ func (a *App) readLine(prompt string) (string, bool) {
 	}
 
 	return strings.TrimSpace(a.reader.Text()), true
+}
+
+func (a *App) printMenu(title string, items []menuItem) {
+	fmt.Fprintf(a.out, "\n=== %s ===\n", title)
+	for _, it := range items {
+		fmt.Fprintf(a.out, "%s) %s\n", it.key, it.label)
+	}
+	fmt.Fprintln(a.out, "x) Back")
+}
+
+func (a *App) runMenu(title string, items []menuItem) {
+	for {
+		a.printMenu(title, items)
+
+		choice, ok := a.readLine("Choose an option: ")
+		if !ok {
+			return
+		}
+
+		// 1. if the choice is "x", return
+		if strings.ToLower(choice) == "x" {
+			return
+		}
+
+		// 2. loop over items:
+		//   if it.key matches the choice, call it.action() and note that you found it
+		found := false
+		for _, it := range items {
+			if it.key == choice {
+				it.action()
+				found = true
+				break
+			}
+		}
+		if !found {
+			fmt.Fprintln(a.out, "Not an option, try again.")
+		}
+	}
 }
 
 func (a *App) MainMenu() {
@@ -70,109 +114,33 @@ func (a *App) MainMenu() {
 }
 
 func (a *App) AddMenu() {
-	for {
-		fmt.Fprintln(a.out, "\n=== Add ===")
-		fmt.Fprintln(a.out, "1) Add student")
-		fmt.Fprintln(a.out, "2) Add subject")
-		fmt.Fprintln(a.out, "3) Add grade")
-		fmt.Fprintln(a.out, "x) Back")
-
-		choice, ok := a.readLine("Choose an option: ")
-		if !ok {
-			return
-		}
-
-		switch strings.ToLower(choice) {
-		case "1":
-			a.addStudent()
-		case "2":
-			a.addSubject()
-		case "3":
-			a.addGrade()
-		case "x":
-			return
-		default:
-			fmt.Fprintln(a.out, "Not an option, try again.")
-		}
-	}
+	a.runMenu("Add", []menuItem{
+		{"1", "Add student", a.addStudent},
+		{"2", "Add subject", a.addSubject},
+		{"3", "Add grade", a.addGrade},
+	})
 }
 
 func (a *App) DeleteMenu() {
-	for {
-		fmt.Fprintln(a.out, "\n=== Delete ===")
-		fmt.Fprintln(a.out, "1) Delete student")
-		fmt.Fprintln(a.out, "2) Delete subject")
-		fmt.Fprintln(a.out, "x) Back")
-
-		choice, ok := a.readLine("Choose an option: ")
-		if !ok {
-			return
-		}
-
-		switch strings.ToLower(choice) {
-		case "1":
-			a.deleteStudent()
-		case "2":
-			a.deleteSubject()
-		case "x":
-			return
-		default:
-			fmt.Fprintln(a.out, "Not an option, try again.")
-		}
-	}
+	a.runMenu("Delete", []menuItem{
+		{"1", "Delete student", a.deleteStudent},
+		{"2", "Delete subject", a.deleteSubject},
+	})
 }
 
 func (a *App) ListMenu() {
-	for {
-		fmt.Fprintln(a.out, "\n=== List ===")
-		fmt.Fprintln(a.out, "1) List students")
-		fmt.Fprintln(a.out, "2) List subjects")
-		fmt.Fprintln(a.out, "3) List student grades")
-		fmt.Fprintln(a.out, "x) Back")
-
-		choice, ok := a.readLine("Choose an option: ")
-		if !ok {
-			return
-		}
-
-		switch strings.ToLower(choice) {
-		case "1":
-			a.listStudents()
-		case "2":
-			a.listSubjects()
-		case "3":
-			a.listStudentGrades()
-		case "x":
-			return
-		default:
-			fmt.Fprintln(a.out, "Not an option, try again.")
-		}
-	}
+	a.runMenu("List", []menuItem{
+		{"1", "List students", a.listStudents},
+		{"2", "List subjects", a.listSubjects},
+		{"3", "List student grades", a.listStudentGrades},
+	})
 }
 
 func (a *App) LookupMenu() {
-	for {
-		fmt.Fprintln(a.out, "\n=== Lookup ===")
-		fmt.Fprintln(a.out, "1) Get student")
-		fmt.Fprintln(a.out, "2) Get subject")
-		fmt.Fprintln(a.out, "x) Back")
-
-		choice, ok := a.readLine("Choose an option: ")
-		if !ok {
-			return
-		}
-
-		switch strings.ToLower(choice) {
-		case "1":
-			a.getStudent()
-		case "2":
-			a.getSubject()
-		case "x":
-			return
-		default:
-			fmt.Fprintln(a.out, "Not an option, try again.")
-		}
-	}
+	a.runMenu("Lookup", []menuItem{
+		{"1", "Get student", a.getStudent},
+		{"2", "Get subject", a.getSubject},
+	})
 }
 
 func (a *App) addStudent() {
