@@ -43,17 +43,17 @@ func (a *App) readLine(prompt string) (string, bool) {
 	return strings.TrimSpace(a.reader.Text()), true
 }
 
-func (a *App) printMenu(title string, items []menuItem) {
+func (a *App) printMenu(title string, exitLabel string, items []menuItem) {
 	fmt.Fprintf(a.out, "\n=== %s ===\n", title)
 	for _, it := range items {
 		fmt.Fprintf(a.out, "%s) %s\n", it.key, it.label)
 	}
-	fmt.Fprintln(a.out, "x) Back")
+	fmt.Fprintf(a.out, "x) %s\n", exitLabel)
 }
 
-func (a *App) runMenu(title string, items []menuItem) {
+func (a *App) runMenu(title string, exitLabel string, items []menuItem) {
 	for {
-		a.printMenu(title, items)
+		a.printMenu(title, exitLabel, items)
 
 		choice, ok := a.readLine("Choose an option: ")
 		if !ok {
@@ -79,39 +79,18 @@ func (a *App) runMenu(title string, items []menuItem) {
 }
 
 func (a *App) MainMenu() {
-	for {
-		fmt.Fprintln(a.out, "\n=== Gradebook ===")
-		fmt.Fprintln(a.out, "1) Add")
-		fmt.Fprintln(a.out, "2) Delete")
-		fmt.Fprintln(a.out, "3) List")
-		fmt.Fprintln(a.out, "4) Lookup")
-		fmt.Fprintln(a.out, "x) Exit")
+	a.runMenu("Gradebook", "Exit", []menuItem{
+		{"1", "Add", a.AddMenu},
+		{"2", "Delete", a.DeleteMenu},
+		{"3", "List", a.ListMenu},
+		{"4", "Lookup", a.LookupMenu},
+	})
 
-		choice, ok := a.readLine("Choose an option: ")
-		if !ok {
-			return
-		}
-
-		switch strings.ToLower(choice) {
-		case "1":
-			a.AddMenu()
-		case "2":
-			a.DeleteMenu()
-		case "3":
-			a.ListMenu()
-		case "4":
-			a.LookupMenu()
-		case "x":
-			fmt.Fprintln(a.out, "Goodbye!")
-			return
-		default:
-			fmt.Fprintln(a.out, "Not an option, try again.")
-		}
-	}
+	fmt.Fprintln(a.out, "Goodbye!")
 }
 
 func (a *App) AddMenu() {
-	a.runMenu("Add", []menuItem{
+	a.runMenu("Add", "Back", []menuItem{
 		{"1", "Add student", a.addStudent},
 		{"2", "Add subject", a.addSubject},
 		{"3", "Add grade", a.addGrade},
@@ -119,14 +98,14 @@ func (a *App) AddMenu() {
 }
 
 func (a *App) DeleteMenu() {
-	a.runMenu("Delete", []menuItem{
+	a.runMenu("Delete", "Back", []menuItem{
 		{"1", "Delete student", a.deleteStudent},
 		{"2", "Delete subject", a.deleteSubject},
 	})
 }
 
 func (a *App) ListMenu() {
-	a.runMenu("List", []menuItem{
+	a.runMenu("List", "Back", []menuItem{
 		{"1", "List students", a.listStudents},
 		{"2", "List subjects", a.listSubjects},
 		{"3", "List student grades", a.listStudentGrades},
@@ -134,7 +113,7 @@ func (a *App) ListMenu() {
 }
 
 func (a *App) LookupMenu() {
-	a.runMenu("Lookup", []menuItem{
+	a.runMenu("Lookup", "Back", []menuItem{
 		{"1", "Get student", a.getStudent},
 		{"2", "Get subject", a.getSubject},
 	})
